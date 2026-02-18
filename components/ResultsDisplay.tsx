@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { AnalysisResponse, UserMode } from '../types';
 import { 
-  RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis,
+  RadialBarChart, RadialBar, PolarAngleAxis,
   Radar, RadarChart, PolarGrid, PolarAngleAxis as RadarAngleAxis, PolarRadiusAxis, Legend, Tooltip
 } from 'recharts';
 import { MODE_CONFIG } from '../constants';
@@ -301,12 +301,12 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
         </div>
 
         <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* 오각형 레이더 차트 - inline style로 width/height 강제 지정 */}
+          {/* 오각형 레이더 차트 - ResponsiveContainer 제거 및 고정 크기 사용 */}
           <div className="bg-slate-900/40 border border-slate-800 p-8 rounded-[2.5rem] flex flex-col relative overflow-hidden">
             <h3 className="text-slate-500 uppercase tracking-[0.2em] text-[10px] font-black mb-10 flex items-center space-x-2"><i className="fa-solid fa-chart-simple text-blue-500"></i><span>역량 오각형 분석</span></h3>
-            <div className="relative" style={{ height: '400px', width: '100%', minHeight: '400px' }}>
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+            <div className="flex items-center justify-center" style={{ width: '100%', height: '400px', overflow: 'hidden' }}>
                 <RadarChart 
+                  width={320} height={320}
                   cx="50%" cy="50%" outerRadius="75%" data={dynamicRadarData}
                   onMouseMove={(state) => { if (state && state.activeLabel) setActiveRadarSubject(state.activeLabel); }}
                   onMouseLeave={() => setActiveRadarSubject(null)}
@@ -341,21 +341,21 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
                   <Tooltip content={<CustomRadarTooltip />} cursor={false} />
                   <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontWeight: 800 }} verticalAlign="bottom" />
                 </RadarChart>
-              </ResponsiveContainer>
             </div>
           </div>
 
           <div className="bg-slate-900/40 border border-slate-800 p-8 rounded-[2.5rem] flex flex-col items-center justify-center relative overflow-hidden">
             <h3 className="text-slate-500 uppercase tracking-[0.2em] text-[10px] font-black mb-10 self-start flex items-center space-x-2"><i className="fa-solid fa-bullseye text-purple-500"></i><span>목표 도달 확률</span></h3>
-            {/* 원형 차트 - inline style로 width/height 강제 지정 */}
-            <div className="relative" style={{ width: '256px', height: '256px', minWidth: '256px', minHeight: '256px' }}>
-               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <RadialBarChart innerRadius="80%" outerRadius="100%" data={similarityChartData} startAngle={90} endAngle={450}>
+            {/* 원형 차트 - ResponsiveContainer 제거 및 고정 크기 사용 */}
+            <div className="flex items-center justify-center relative" style={{ width: '256px', height: '256px' }}>
+                <RadialBarChart width={256} height={256} innerRadius="80%" outerRadius="100%" data={similarityChartData} startAngle={90} endAngle={450}>
                   <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
                   <RadialBar background dataKey="value" cornerRadius={30} fill="#3b82f6" isAnimationActive={true} animationDuration={1000} animationEasing="ease-out" />
                 </RadialBarChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-5xl font-black text-white tracking-tighter transition-all duration-500">{dynamicSimilarityScore}%</span><span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mt-2">Similarity Score</span></div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-5xl font-black text-white tracking-tighter transition-all duration-500">{dynamicSimilarityScore}%</span>
+                  <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mt-2">Similarity Score</span>
+                </div>
             </div>
           </div>
         </div>
