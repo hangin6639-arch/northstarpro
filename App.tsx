@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
@@ -10,6 +9,50 @@ import { UserMode, AnalysisResponse, SavedReport, SurveyData } from './types';
 import { analyzeUserGap } from './services/geminiService';
 
 const COOLDOWN_SECONDS = 60;
+
+// 🟢 [테스트용 가짜 데이터] API가 안 될 때 화면 확인용
+const TEST_DATA: AnalysisResponse = {
+  user_mode: UserMode.PRO_NAVIGATOR,
+  persona_message: "당신은 이미 훌륭한 전략가입니다. 이제 실행만이 남았습니다.",
+  input_analysis: {
+    data_type: "text",
+    vision_summary: "글로벌 테크 리더로의 도약",
+    current_vector: "숙련된 전문가",
+    target_vector: "업계 사상가(Thought Leader)"
+  },
+  gap_report: {
+    similarity_score: 78,
+    gap_summary: "기술적 역량은 충분하나, 네트워킹과 퍼스널 브랜딩이 필요함",
+    missing_elements: [
+      { item: "Global Network", impact: "해외 진출을 위한 필수 교두보" },
+      { item: "Public Speaking", impact: "영향력 확대를 위한 스킬" },
+      { item: "Tech Writing", impact: "지식 자산화 및 인지도 상승" }
+    ],
+    attributes: [
+      { subject: '전문성', current: 90, target: 95 },
+      { subject: '리더십', current: 70, target: 90 },
+      { subject: '네트워크', current: 40, target: 85 },
+      { subject: '자산', current: 60, target: 80 },
+      { subject: '영향력', current: 30, target: 85 },
+    ]
+  },
+  solution_card: {
+    title: "글로벌 리더십 로드맵",
+    action_type: "Network & Brand",
+    quest: "주 1회 링크드인 아티클 발행하기",
+    expected_result: "업계 인지도 30% 상승 예상",
+    roadmap: [
+      { title: "기반 다지기", description: "링크드인 프로필 최적화", detail: "영문 이력서 및 포트폴리오 업데이트", status: "completed", icon_type: "base" },
+      { title: "네트워킹", description: "글로벌 컨퍼런스 참여", detail: "해외 연사들과의 관계 형성", status: "current", icon_type: "growth" },
+      { title: "브랜딩", description: "전문 서적 출판", detail: "자신의 경험을 책으로 엮어 권위 확보", status: "upcoming", icon_type: "target" }
+    ]
+  },
+  required_info_guide: ["현재 연봉 및 희망 연봉", "보유한 자격증 목록"],
+  target_requirements: [
+    { category: "비용", item: "MBA 학비", cost_or_condition: "약 5,000만원" },
+    { category: "시간", item: "준비 기간", cost_or_condition: "1년 6개월" }
+  ]
+};
 
 const App: React.FC = () => {
   const [selectedMode, setSelectedMode] = useState<UserMode | null>(null);
@@ -26,23 +69,22 @@ const App: React.FC = () => {
   const timerRef = useRef<any>(null);
 
   useEffect(() => {
-    // Load Archive
     const savedArchive = localStorage.getItem('northstar_archive');
     if (savedArchive) {
       try {
-        setArchive(JSON.parse(savedArchive));
+        const parsed = JSON.parse(savedArchive);
+        setArchive(parsed || []);
       } catch (e) {
         console.error("Failed to parse archive", e);
+        setArchive([]);
       }
     }
 
-    // Load PRO Status
     const savedPro = localStorage.getItem('northstar_is_pro');
     if (savedPro === 'true') {
       setIsPro(true);
     }
 
-    // Load Survey Data
     const savedSurvey = localStorage.getItem('northstar_survey');
     if (savedSurvey) {
       try {
@@ -84,6 +126,15 @@ const App: React.FC = () => {
   const handleSubscribe = () => {
     setIsPro(true);
     localStorage.setItem('northstar_is_pro', 'true');
+  };
+
+  // 🧪 테스트 데이터 강제 주입 함수
+  const loadTestData = () => {
+    setResult(TEST_DATA);
+    setTimeout(() => {
+      const resultEl = document.getElementById('analysis-result');
+      resultEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
   };
 
   const handleAnalyze = async (text: string, image: string | null) => {
@@ -139,6 +190,15 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen relative pb-24">
       <div className="star-bg"></div>
+      
+      {/* 🧪 테스트 버튼 (화면 우측 상단) */}
+      <button 
+        onClick={loadTestData}
+        className="fixed top-24 right-4 z-50 bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg animate-pulse"
+      >
+        🧪 테스트 데이터 보기
+      </button>
+
       <Header onNavClick={setActiveModal} isPro={isPro} />
 
       {showSurvey && <OnboardingSurvey onComplete={handleSurveyComplete} />}
@@ -257,6 +317,7 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {/* 🟢 결과 화면: result 데이터가 있어야만 보입니다! */}
         {result && (
           <div id="analysis-result">
             <ResultsDisplay data={result} />
