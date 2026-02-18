@@ -29,17 +29,21 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
     setFulfilledElements(newSet);
   };
 
-  // 1. 에러가 가장 많이 발생하는 useMemo 부분 안전장치 추가
+  // 1. 에러 수정: 배열 타입 체크 강화 (Array.isArray 사용)
   const { dynamicRadarData, dynamicSimilarityScore } = useMemo(() => {
-    // 안전장치: 데이터가 없으면 빈 배열([])로 처리
-    const missingElements = data?.gap_report?.missing_elements || [];
-    const attributes = data?.gap_report?.attributes || [];
+    // 데이터가 없거나 배열이 아닐 경우 빈 배열로 강제 변환
+    const missingElements = Array.isArray(data?.gap_report?.missing_elements) 
+      ? data.gap_report.missing_elements 
+      : [];
+      
+    const rawAttributes = data?.gap_report?.attributes;
+    const attributes = Array.isArray(rawAttributes) ? rawAttributes : [];
 
     const totalMissing = missingElements.length;
     const fulfilledCount = fulfilledElements.size;
     const progressRatio = totalMissing > 0 ? fulfilledCount / totalMissing : 0;
 
-    // 항상 5개 요소를 보장하여 오각형 유지
+    // slice 에러 방지됨 (attributes가 무조건 배열임이 보장됨)
     const radar = attributes.slice(0, 5).map(attr => {
       const gap = attr.target - attr.current;
       const boostedCurrent = attr.current + (gap * progressRatio);
@@ -116,7 +120,6 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
     return null;
   };
 
-  // 데이터가 아예 없을 경우를 대비한 렌더링 방지
   if (!data) return null;
 
   return (
@@ -162,17 +165,16 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
         </div>
 
         <div className="relative px-4 py-20">
-          {/* Connecting Line - 안전장치 추가 */}
+          {/* Connecting Line */}
           <div className="absolute top-1/2 left-0 w-full h-[3px] bg-slate-800 -translate-y-1/2 hidden md:block rounded-full overflow-hidden">
              <div 
                className="h-full bg-gradient-to-r from-emerald-500 via-blue-500 to-slate-800 transition-all duration-1000 ease-out" 
-               style={{ width: `${(fulfilledElements.size / ((data?.gap_report?.missing_elements || []).length || 1)) * 100}%` }}
+               style={{ width: `${(fulfilledElements.size / ((Array.isArray(data?.gap_report?.missing_elements) ? data.gap_report.missing_elements : []).length || 1)) * 100}%` }}
              ></div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
-            {/* 안전장치: roadmap이 없으면 빈 배열 사용 */}
-            {(data?.solution_card?.roadmap || []).map((step, idx) => {
+            {(Array.isArray(data?.solution_card?.roadmap) ? data.solution_card.roadmap : []).map((step, idx) => {
               const isActive = step.status === 'current';
               const isCompleted = step.status === 'completed';
               const isUpcoming = step.status === 'upcoming';
@@ -250,8 +252,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
               <p className="text-[10px] text-slate-500 uppercase font-black">항목을 클릭하여 충족 상태를 시뮬레이션 하세요.</p>
             </div>
             <div className="space-y-3 relative">
-              {/* 안전장치: missing_elements가 없으면 빈 배열 사용 */}
-              {(data?.gap_report?.missing_elements || []).map((el, idx) => {
+              {(Array.isArray(data?.gap_report?.missing_elements) ? data.gap_report.missing_elements : []).map((el, idx) => {
                 const isFulfilled = fulfilledElements.has(el.item);
                 const isTooltipActive = activeGapTooltip === el.item;
                 
@@ -289,15 +290,14 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
             </div>
           </div>
           <div className="pt-8 mt-8 border-t border-slate-800">
-             {/* 안전장치: .length 접근 시 에러 방지 */}
              <div className="flex justify-between items-center mb-3">
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">목표 근접도</span>
-                <span className="text-xs font-black text-emerald-500">{Math.round((fulfilledElements.size / ((data?.gap_report?.missing_elements || []).length || 1)) * 100)}%</span>
+                <span className="text-xs font-black text-emerald-500">{Math.round((fulfilledElements.size / ((Array.isArray(data?.gap_report?.missing_elements) ? data.gap_report.missing_elements : []).length || 1)) * 100)}%</span>
              </div>
              <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
                 <div 
                    className="h-full bg-gradient-to-r from-emerald-600 to-blue-600 transition-all duration-700 ease-out" 
-                   style={{ width: `${(fulfilledElements.size / ((data?.gap_report?.missing_elements || []).length || 1)) * 100}%` }}
+                   style={{ width: `${(fulfilledElements.size / ((Array.isArray(data?.gap_report?.missing_elements) ? data.gap_report.missing_elements : []).length || 1)) * 100}%` }}
                 ></div>
              </div>
           </div>
@@ -376,8 +376,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
               <h2 className="text-2xl font-black text-white tracking-tighter">분석 고도화를 위한 추가 정보</h2>
             </div>
             <div className="grid grid-cols-1 gap-4">
-              {/* 안전장치: required_info_guide가 없으면 빈 배열 사용 */}
-              {(data?.required_info_guide || []).map((info, idx) => (
+              {(Array.isArray(data?.required_info_guide) ? data.required_info_guide : []).map((info, idx) => (
                 <div key={idx} className="flex items-center space-x-5 p-4 bg-slate-800/20 border border-slate-700/40 rounded-3xl group cursor-default">
                   <div className={`flex-shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br ${config.color} opacity-80 flex items-center justify-center text-white shadow-lg`}>
                     <i className={`fa-solid ${getGuideIcon(idx)} text-sm`}></i>
@@ -400,8 +399,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
               <h2 className="text-2xl font-black text-white tracking-tighter">필요 조건 및 예상 리소스</h2>
             </div>
             <div className="grid grid-cols-1 gap-4">
-              {/* 안전장치: target_requirements가 없으면 빈 배열 사용 */}
-              {(data?.target_requirements || []).map((req, idx) => (
+              {(Array.isArray(data?.target_requirements) ? data.target_requirements : []).map((req, idx) => (
                 <div key={idx} className="flex items-center justify-between p-4 bg-slate-950/40 border border-slate-800/60 rounded-3xl group">
                   <div className="flex items-center space-x-4">
                     <div className="w-10 h-10 rounded-2xl bg-slate-800 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
