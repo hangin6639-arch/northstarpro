@@ -1,0 +1,7 @@
+{
+  "name": "North Star Universe 2.0",
+  "description": "AI-powered career gap analyzer that provides tailored roadmaps for all ages, from children dreaming big to executives pivoting their careers.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
