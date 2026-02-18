@@ -1,6 +1,5 @@
-
 import React, { useState, useMemo } from 'react';
-import { AnalysisResponse, UserMode, RoadmapStep, TargetRequirement, MissingElement } from '../types';
+import { AnalysisResponse, UserMode } from '../types';
 import { 
   RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis,
   Radar, RadarChart, PolarGrid, PolarAngleAxis as RadarAngleAxis, PolarRadiusAxis, Legend, Tooltip
@@ -12,12 +11,12 @@ interface ResultsDisplayProps {
 }
 
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
-  const mode = data.user_mode as UserMode;
+  const mode = data?.user_mode as UserMode;
   const config = MODE_CONFIG[mode] || MODE_CONFIG[UserMode.PRO_NAVIGATOR];
   const [hoveredStep, setHoveredStep] = useState<number | null>(null);
   const [activeRadarSubject, setActiveRadarSubject] = useState<string | null>(null);
   const [activeGapTooltip, setActiveGapTooltip] = useState<string | null>(null);
-  
+   
   const [fulfilledElements, setFulfilledElements] = useState<Set<string>>(new Set());
 
   const toggleElement = (elItem: string) => {
@@ -30,13 +29,18 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
     setFulfilledElements(newSet);
   };
 
+  // 1. 에러가 가장 많이 발생하는 useMemo 부분 안전장치 추가
   const { dynamicRadarData, dynamicSimilarityScore } = useMemo(() => {
-    const totalMissing = data.gap_report.missing_elements.length;
+    // 안전장치: 데이터가 없으면 빈 배열([])로 처리
+    const missingElements = data?.gap_report?.missing_elements || [];
+    const attributes = data?.gap_report?.attributes || [];
+
+    const totalMissing = missingElements.length;
     const fulfilledCount = fulfilledElements.size;
     const progressRatio = totalMissing > 0 ? fulfilledCount / totalMissing : 0;
 
     // 항상 5개 요소를 보장하여 오각형 유지
-    const radar = data.gap_report.attributes.slice(0, 5).map(attr => {
+    const radar = attributes.slice(0, 5).map(attr => {
       const gap = attr.target - attr.current;
       const boostedCurrent = attr.current + (gap * progressRatio);
       
@@ -48,7 +52,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
       };
     });
 
-    const initialScore = data.gap_report.similarity_score;
+    const initialScore = data?.gap_report?.similarity_score || 0;
     const boostedScore = Math.min(100, Math.round(initialScore + (100 - initialScore) * progressRatio));
 
     return { 
@@ -72,7 +76,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
   };
 
   const getRequirementIcon = (category: string) => {
-    const cat = category.toLowerCase();
+    const cat = (category || '').toLowerCase();
     if (cat.includes('비용') || cat.includes('학비') || cat.includes('돈') || cat.includes('예산')) return 'fa-money-bill-transfer';
     if (cat.includes('시간') || cat.includes('기간')) return 'fa-clock';
     if (cat.includes('자격') || cat.includes('조건')) return 'fa-certificate';
@@ -88,7 +92,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
       'growth': 'fa-seedling',
       'action': 'fa-fire'
     };
-    return map[type.toLowerCase()] || 'fa-circle-dot';
+    return map[(type || '').toLowerCase()] || 'fa-circle-dot';
   };
 
   const CustomRadarTooltip = ({ active, payload, label }: any) => {
@@ -111,6 +115,9 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
     }
     return null;
   };
+
+  // 데이터가 아예 없을 경우를 대비한 렌더링 방지
+  if (!data) return null;
 
   return (
     <div className="mt-16 space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700 pb-20">
@@ -155,16 +162,17 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
         </div>
 
         <div className="relative px-4 py-20">
-          {/* Connecting Line */}
+          {/* Connecting Line - 안전장치 추가 */}
           <div className="absolute top-1/2 left-0 w-full h-[3px] bg-slate-800 -translate-y-1/2 hidden md:block rounded-full overflow-hidden">
              <div 
                className="h-full bg-gradient-to-r from-emerald-500 via-blue-500 to-slate-800 transition-all duration-1000 ease-out" 
-               style={{ width: `${(fulfilledElements.size / (data.gap_report.missing_elements.length || 1)) * 100}%` }}
+               style={{ width: `${(fulfilledElements.size / ((data?.gap_report?.missing_elements || []).length || 1)) * 100}%` }}
              ></div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
-            {data.solution_card.roadmap?.map((step, idx) => {
+            {/* 안전장치: roadmap이 없으면 빈 배열 사용 */}
+            {(data?.solution_card?.roadmap || []).map((step, idx) => {
               const isActive = step.status === 'current';
               const isCompleted = step.status === 'completed';
               const isUpcoming = step.status === 'upcoming';
@@ -177,7 +185,6 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
                   onMouseEnter={() => setHoveredStep(idx)} 
                   onMouseLeave={() => setHoveredStep(null)}
                 >
-                  {/* Detailed Description Tooltip - Positioned ABOVE the icon */}
                   <div className={`
                     absolute bottom-full mb-8 left-1/2 -translate-x-1/2 w-80 p-6 
                     bg-slate-950/98 border-2 border-slate-800 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] 
@@ -200,13 +207,12 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
                         </p>
                       </div>
                       <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-                         <span className="text-[9px] font-bold text-slate-500 uppercase">Roadmap Insight</span>
-                         <span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? 'text-blue-400' : isCompleted ? 'text-emerald-400' : 'text-slate-600'}`}>{step.status}</span>
+                          <span className="text-[9px] font-bold text-slate-500 uppercase">Roadmap Insight</span>
+                          <span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? 'text-blue-400' : isCompleted ? 'text-emerald-400' : 'text-slate-600'}`}>{step.status}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Icon Circle */}
                   <div className={`
                     w-24 h-24 rounded-[2rem] flex items-center justify-center text-3xl 
                     transition-all duration-500 cursor-help relative transform 
@@ -220,7 +226,6 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
                     {isActive && <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-white rounded-full flex items-center justify-center border-4 border-slate-900 shadow-lg"><i className="fa-solid fa-location-dot text-[10px] text-blue-600 animate-bounce"></i></div>}
                   </div>
 
-                  {/* Text Description below the line */}
                   <div className="mt-8 text-center space-y-3 max-w-[220px]">
                     <div className={`inline-block px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isActive ? 'bg-blue-500 text-white' : isCompleted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'}`}>Step {idx + 1}</div>
                     <h3 className={`text-sm font-black uppercase tracking-tighter transition-colors ${isActive ? 'text-white' : isCompleted ? 'text-emerald-400' : 'text-slate-500'}`}>{step.title}</h3>
@@ -245,7 +250,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
               <p className="text-[10px] text-slate-500 uppercase font-black">항목을 클릭하여 충족 상태를 시뮬레이션 하세요.</p>
             </div>
             <div className="space-y-3 relative">
-              {data.gap_report.missing_elements.map((el, idx) => {
+              {/* 안전장치: missing_elements가 없으면 빈 배열 사용 */}
+              {(data?.gap_report?.missing_elements || []).map((el, idx) => {
                 const isFulfilled = fulfilledElements.has(el.item);
                 const isTooltipActive = activeGapTooltip === el.item;
                 
@@ -283,8 +289,17 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
             </div>
           </div>
           <div className="pt-8 mt-8 border-t border-slate-800">
-             <div className="flex justify-between items-center mb-3"><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">목표 근접도</span><span className="text-xs font-black text-emerald-500">{Math.round((fulfilledElements.size / (data.gap_report.missing_elements.length || 1)) * 100)}%</span></div>
-             <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-emerald-600 to-blue-600 transition-all duration-700 ease-out" style={{ width: `${(fulfilledElements.size / (data.gap_report.missing_elements.length || 1)) * 100}%` }}></div></div>
+             {/* 안전장치: .length 접근 시 에러 방지 */}
+             <div className="flex justify-between items-center mb-3">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">목표 근접도</span>
+                <span className="text-xs font-black text-emerald-500">{Math.round((fulfilledElements.size / ((data?.gap_report?.missing_elements || []).length || 1)) * 100)}%</span>
+             </div>
+             <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                   className="h-full bg-gradient-to-r from-emerald-600 to-blue-600 transition-all duration-700 ease-out" 
+                   style={{ width: `${(fulfilledElements.size / ((data?.gap_report?.missing_elements || []).length || 1)) * 100}%` }}
+                ></div>
+             </div>
           </div>
         </div>
 
@@ -361,7 +376,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
               <h2 className="text-2xl font-black text-white tracking-tighter">분석 고도화를 위한 추가 정보</h2>
             </div>
             <div className="grid grid-cols-1 gap-4">
-              {data.required_info_guide.map((info, idx) => (
+              {/* 안전장치: required_info_guide가 없으면 빈 배열 사용 */}
+              {(data?.required_info_guide || []).map((info, idx) => (
                 <div key={idx} className="flex items-center space-x-5 p-4 bg-slate-800/20 border border-slate-700/40 rounded-3xl group cursor-default">
                   <div className={`flex-shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br ${config.color} opacity-80 flex items-center justify-center text-white shadow-lg`}>
                     <i className={`fa-solid ${getGuideIcon(idx)} text-sm`}></i>
@@ -384,11 +400,12 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
               <h2 className="text-2xl font-black text-white tracking-tighter">필요 조건 및 예상 리소스</h2>
             </div>
             <div className="grid grid-cols-1 gap-4">
-              {data.target_requirements?.map((req, idx) => (
+              {/* 안전장치: target_requirements가 없으면 빈 배열 사용 */}
+              {(data?.target_requirements || []).map((req, idx) => (
                 <div key={idx} className="flex items-center justify-between p-4 bg-slate-950/40 border border-slate-800/60 rounded-3xl group">
                   <div className="flex items-center space-x-4">
                     <div className="w-10 h-10 rounded-2xl bg-slate-800 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
-                       <i className={`fa-solid ${getRequirementIcon(req.category)}`}></i>
+                        <i className={`fa-solid ${getRequirementIcon(req.category)}`}></i>
                     </div>
                     <div>
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">{req.category}</p>
@@ -410,7 +427,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-center">
           <div className="text-center md:text-left space-y-2">
              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Origin Vector (현재)</span>
-             <p className="text-xl font-black text-white tracking-tight">{data.input_analysis.current_vector}</p>
+             <p className="text-xl font-black text-white tracking-tight">{data?.input_analysis?.current_vector || 'N/A'}</p>
           </div>
           <div className="flex flex-col items-center justify-center py-4">
             <div className={`w-14 h-14 rounded-full bg-gradient-to-r ${config.color} flex items-center justify-center shadow-xl animate-bounce border-4 border-slate-900`}>
@@ -420,7 +437,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
           </div>
           <div className="text-center md:text-right space-y-2">
              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Target Vector (목표)</span>
-             <p className="text-xl font-black text-white tracking-tight">{data.input_analysis.target_vector}</p>
+             <p className="text-xl font-black text-white tracking-tight">{data?.input_analysis?.target_vector || 'N/A'}</p>
           </div>
         </div>
       </div>
