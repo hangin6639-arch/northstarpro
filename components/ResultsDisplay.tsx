@@ -301,11 +301,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
         </div>
 
         <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* 오각형 레이더 차트 - 강제 높이 설정으로 에러 방지 */}
+          {/* 오각형 레이더 차트 - inline style로 width/height 강제 지정 */}
           <div className="bg-slate-900/40 border border-slate-800 p-8 rounded-[2.5rem] flex flex-col relative overflow-hidden">
             <h3 className="text-slate-500 uppercase tracking-[0.2em] text-[10px] font-black mb-10 flex items-center space-x-2"><i className="fa-solid fa-chart-simple text-blue-500"></i><span>역량 오각형 분석</span></h3>
-            <div className="w-full relative" style={{ height: '400px', minHeight: '400px' }}>
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="relative" style={{ height: '400px', width: '100%', minHeight: '400px' }}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <RadarChart 
                   cx="50%" cy="50%" outerRadius="75%" data={dynamicRadarData}
                   onMouseMove={(state) => { if (state && state.activeLabel) setActiveRadarSubject(state.activeLabel); }}
@@ -347,9 +347,9 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
 
           <div className="bg-slate-900/40 border border-slate-800 p-8 rounded-[2.5rem] flex flex-col items-center justify-center relative overflow-hidden">
             <h3 className="text-slate-500 uppercase tracking-[0.2em] text-[10px] font-black mb-10 self-start flex items-center space-x-2"><i className="fa-solid fa-bullseye text-purple-500"></i><span>목표 도달 확률</span></h3>
-            {/* 원형 차트 - 강제 크기 설정으로 에러 방지 */}
-            <div className="relative" style={{ width: '256px', height: '256px' }}>
-               <ResponsiveContainer width="100%" height="100%">
+            {/* 원형 차트 - inline style로 width/height 강제 지정 */}
+            <div className="relative" style={{ width: '256px', height: '256px', minWidth: '256px', minHeight: '256px' }}>
+               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <RadialBarChart innerRadius="80%" outerRadius="100%" data={similarityChartData} startAngle={90} endAngle={450}>
                   <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
                   <RadialBar background dataKey="value" cornerRadius={30} fill="#3b82f6" isAnimationActive={true} animationDuration={1000} animationEasing="ease-out" />
