@@ -29,9 +29,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
     setFulfilledElements(newSet);
   };
 
-  // 1. 에러 수정: 배열 타입 체크 강화 (Array.isArray 사용)
   const { dynamicRadarData, dynamicSimilarityScore } = useMemo(() => {
-    // 데이터가 없거나 배열이 아닐 경우 빈 배열로 강제 변환
     const missingElements = Array.isArray(data?.gap_report?.missing_elements) 
       ? data.gap_report.missing_elements 
       : [];
@@ -43,7 +41,6 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
     const fulfilledCount = fulfilledElements.size;
     const progressRatio = totalMissing > 0 ? fulfilledCount / totalMissing : 0;
 
-    // slice 에러 방지됨 (attributes가 무조건 배열임이 보장됨)
     const radar = attributes.slice(0, 5).map(attr => {
       const gap = attr.target - attr.current;
       const boostedCurrent = attr.current + (gap * progressRatio);
@@ -304,10 +301,10 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
         </div>
 
         <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* 오각형 레이더 차트 */}
+          {/* 오각형 레이더 차트 (높이 고정하여 에러 해결!) */}
           <div className="bg-slate-900/40 border border-slate-800 p-8 rounded-[2.5rem] flex flex-col relative overflow-hidden">
             <h3 className="text-slate-500 uppercase tracking-[0.2em] text-[10px] font-black mb-10 flex items-center space-x-2"><i className="fa-solid fa-chart-simple text-blue-500"></i><span>역량 오각형 분석</span></h3>
-            <div className="flex-1 min-h-[300px] w-full relative">
+            <div className="h-[400px] w-full relative">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart 
                   cx="50%" cy="50%" outerRadius="75%" data={dynamicRadarData}
