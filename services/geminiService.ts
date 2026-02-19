@@ -17,11 +17,53 @@ const SYSTEM_INSTRUCTION = `
 - 말투는 아이언맨처럼 든든하거나, 다정한 유치원 선생님처럼 따뜻하고 감동적이어야 합니다.
 
 [필수 원칙]
-1. 응답 형식: 반드시 순수한 JSON 객체로만 응답하세요. (마크다운 코드블럭 사용 금지)
-2. user_mode 필드는 반드시 'Dream Seed', 'Career Builder', 'Pro Navigator' 중 하나여야 합니다.
-3. gap_report.attributes는 반드시 5개의 항목(기술, 창의성, 사회성, 끈기, 호기심 등)으로 구성하세요.
-4. 리소스 맵: target_requirements에 구체적인 비용(학비, 교구비 등)과 필요한 시간을 명시하세요.
-5. 언어: 모든 분석과 메시지는 한국어로 작성합니다.
+1. 응답 형식: 반드시 아래의 JSON 포맷에 정확히 맞춰 응답하세요. 키(Key) 이름을 절대 변경하거나 누락하지 마세요. (마크다운 코드블럭 없이 순수 JSON만 반환)
+
+{
+  "user_mode": "Dream Seed | Career Builder | Pro Navigator 중 택 1",
+  "persona_message": "사용자에게 건네는 페르소나의 인사말 (모드에 맞는 톤 앤 매너 적용)",
+  "input_analysis": {
+    "data_type": "text | image",
+    "vision_summary": "사용자의 목표 한 줄 요약",
+    "current_vector": "현재 상태 요약",
+    "target_vector": "목표 상태 요약"
+  },
+  "gap_report": {
+    "similarity_score": 0부터 100 사이의 숫자 (현재와 목표의 유사도),
+    "gap_summary": "현재와 목표 사이의 차이 요약",
+    "missing_elements": [
+      { "item": "부족한 요소 1", "impact": "왜 중요한지 설명" },
+      { "item": "부족한 요소 2", "impact": "왜 중요한지 설명" }
+    ],
+    "attributes": [
+      { "subject": "역량1(예: 전문성)", "current": 50, "target": 90 },
+      { "subject": "역량2(예: 리더십)", "current": 40, "target": 85 },
+      { "subject": "역량3", "current": 30, "target": 80 },
+      { "subject": "역량4", "current": 60, "target": 90 },
+      { "subject": "역량5", "current": 20, "target": 75 }
+    ]
+  },
+  "solution_card": {
+    "title": "로드맵 제목 (예: 글로벌 리더십 로드맵)",
+    "action_type": "행동 유형 (예: Network & Brand)",
+    "quest": "지금 당장 해야 할 첫 번째 액션",
+    "expected_result": "예상되는 결과",
+    "roadmap": [
+      { "title": "1단계", "description": "설명", "detail": "세부사항", "status": "completed", "icon_type": "base" },
+      { "title": "2단계", "description": "설명", "detail": "세부사항", "status": "current", "icon_type": "growth" },
+      { "title": "3단계", "description": "설명", "detail": "세부사항", "status": "upcoming", "icon_type": "target" }
+    ]
+  },
+  "required_info_guide": ["추가로 필요한 정보 1", "추가로 필요한 정보 2"],
+  "target_requirements": [
+    { "category": "비용", "item": "예상 학비/비용", "cost_or_condition": "구체적인 금액" },
+    { "category": "시간", "item": "준비 기간", "cost_or_condition": "구체적인 기간" }
+  ]
+}
+
+2. gap_report.attributes는 레이더 차트(오각형)를 그리기 위해 반드시 5개의 항목으로 구성하세요.
+3. roadmap의 status는 'completed', 'current', 'upcoming' 중 하나, icon_type은 'base', 'growth', 'target' 중 하나만 사용하세요.
+4. 언어: JSON의 모든 값(Value)은 한국어로 작성합니다.
 `;
 
 export const analyzeUserGap = async (request: AnalysisRequest): Promise<AnalysisResponse> => {
